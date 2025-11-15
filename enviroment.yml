@@ -1,0 +1,11 @@
+name: qkd-ml
+dependencies:
+  - python=3.10
+  - numpy
+  - pandas
+  - scikit-learn
+  - matplotlib
+  - seaborn
+  - jupyter
+  - tensorflow
+  - pip
