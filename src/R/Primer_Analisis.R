@@ -21,7 +21,7 @@ library(corrplot)
 # 1. CARGA Y PREPARACIÓN DE LOS DATOS
 
 # Ruta base de datos
-ruta <- "C:\\Users\\migue\\OneDrive\\Escritorio\\ASIGNATURAS 2526\\TFG\\MEMORIA\\analizador_cuantico\\data"
+ruta <- file.path(getwd(), "data")
 
 # Carga de los archivos CSV originales
 qti <- read_csv(file.path(ruta, "raw/QTI.csv"))
@@ -57,11 +57,9 @@ data_all <- bind_rows(
   toshiba_2025 %>% select(datetime, qber, secure_key_rate, channel_loss, source)
 )
 
-##############################################################
 # 2. ESTADÍSTICAS DESCRIPTIVAS
-##############################################################
 
-cat("\n=== ESTADÍSTICAS DESCRIPTIVAS ===\n")
+#cat("\n=== ESTADÍSTICAS DESCRIPTIVAS ===\n")
 
 summary_stats <- data_all %>%
   group_by(source) %>%
@@ -79,34 +77,32 @@ summary_stats <- data_all %>%
     perdida_sd = sd(channel_loss, na.rm = TRUE)
   )
 
-print(summary_stats)
+#print(summary_stats)
 
-cat("\nInterpretación:\n")
-cat("Las métricas anteriores permiten cuantificar la estabilidad y el rendimiento medio de cada sistema.\n")
-cat("El QBER representa la proporción de errores en el canal cuántico, mientras que el SecureKeyRate indica la velocidad de generación de claves seguras.\n")
-cat("La desviación estándar permite evaluar la regularidad de la conexión: valores más bajos implican una red más estable.\n")
+#cat("\nInterpretación:\n")
+#cat("Las métricas anteriores permiten cuantificar la estabilidad y el rendimiento medio de cada sistema.\n")
+#cat("El QBER representa la proporción de errores en el canal cuántico, mientras que el SecureKeyRate indica la velocidad de generación de claves seguras.\n")
+#cat("La desviación estándar permite evaluar la regularidad de la conexión: valores más bajos implican una red más estable.\n")
 
-##############################################################
 # 3. CORRELACIONES ENTRE VARIABLES PRINCIPALES
-##############################################################
 
-cat("\n=== CORRELACIONES ENTRE VARIABLES ===\n")
+#cat("\n=== CORRELACIONES ENTRE VARIABLES ===\n")
 
 corr_qti <- cor(qti$qber, qti$secure_key_rate)
 corr_toshiba_2024 <- cor(toshiba_2024$qber, toshiba_2024$secure_key_rate)
 corr_toshiba_2025 <- cor(toshiba_2025$qber, toshiba_2025$secure_key_rate)
 
-cat(paste("QTI → Corr(QBER, Rate):", round(corr_qti, 4), "\n"))
-cat(paste("Toshiba 2024 → Corr(QBER, Rate):", round(corr_toshiba_2024, 4), "\n"))
-cat(paste("Toshiba 2025 → Corr(QBER, Rate):", round(corr_toshiba_2025, 4), "\n"))
+#cat(paste("QTI → Corr(QBER, Rate):", round(corr_qti, 4), "\n"))
+#cat(paste("Toshiba 2024 → Corr(QBER, Rate):", round(corr_toshiba_2024, 4), "\n"))
+#cat(paste("Toshiba 2025 → Corr(QBER, Rate):", round(corr_toshiba_2025, 4), "\n"))
 
-cat("\nInterpretación:\n")
-cat("Una correlación negativa indica que un aumento en el error cuántico (QBER) se traduce en una disminución de la tasa de generación de claves (Key Rate).\n")
-cat("Este resultado valida la dependencia inversa entre la pureza del canal y la productividad del sistema cuántico.\n")
+#cat("\nInterpretación:\n")
+#cat("Una correlación negativa indica que un aumento en el error cuántico (QBER) se traduce en una disminución de la tasa de generación de claves (Key Rate).\n")
+#cat("Este resultado valida la dependencia inversa entre la pureza del canal y la productividad del sistema cuántico.\n")
 
 # 4. DETECCIÓN DE VALORES ATÍPICOS (OUTLIERS)
 
-cat("\n=== DETECCIÓN DE VALORES ATÍPICOS ===\n")
+#cat("\n=== DETECCIÓN DE VALORES ATÍPICOS ===\n")
 
 outliers <- data_all %>%
   group_by(source) %>%
@@ -116,15 +112,15 @@ outliers <- data_all %>%
   ) %>%
   filter(abs(z_qber) > 3 | abs(z_rate) > 3)
 
-cat("Número total de valores atípicos detectados:", nrow(outliers), "\n")
+#cat("Número total de valores atípicos detectados:", nrow(outliers), "\n")
 
-cat("\nInterpretación:\n")
-cat("Los valores detectados corresponden a condiciones de operación anómalas, como interferencias ópticas, ruido térmico o inestabilidades en la fuente.\n")
-cat("Estos puntos pueden utilizarse posteriormente para entrenar modelos de detección automática de anomalías mediante técnicas de Machine Learning.\n")
+#cat("\nInterpretación:\n")
+#cat("Los valores detectados corresponden a condiciones de operación anómalas, como interferencias ópticas, ruido térmico o inestabilidades en la fuente.\n")
+#cat("Estos puntos pueden utilizarse posteriormente para entrenar modelos de detección automática de anomalías mediante técnicas de Machine Learning.\n")
 
 # 5. ESTABILIDAD TEMPORAL Y VARIABILIDAD ENTRE MEDICIONES
 
-cat("\n=== ESTABILIDAD TEMPORAL ===\n")
+#cat("\n=== ESTABILIDAD TEMPORAL ===\n")
 
 data_all <- data_all %>%
   group_by(source) %>%
@@ -141,25 +137,25 @@ variacion_media <- data_all %>%
     media_abs_delta_rate = mean(abs(delta_rate), na.rm = TRUE)
   )
 
-print(variacion_media)
+#print(variacion_media)
 
-cat("\nInterpretación:\n")
-cat("Esta métrica permite cuantificar la estabilidad de la red a lo largo del tiempo. Una variación media reducida indica que el enlace mantiene una calidad constante.\n")
-cat("Valores altos pueden reflejar ciclos térmicos, oscilaciones ambientales o ajustes automáticos del sistema óptico.\n")
+#cat("\nInterpretación:\n")
+#cat("Esta métrica permite cuantificar la estabilidad de la red a lo largo del tiempo. Una variación media reducida indica que el enlace mantiene una calidad constante.\n")
+#cat("Valores altos pueden reflejar ciclos térmicos, oscilaciones ambientales o ajustes automáticos del sistema óptico.\n")
 
 # 6. NUEVO ANÁLISIS: RELACIÓN ENTRE PÉRDIDAS ÓPTICAS Y RENDIMIENTO (solo QTI)
 
-cat("\n=== ANÁLISIS FÍSICO DE LAS PÉRDIDAS (QTI) ===\n")
+#cat("\n=== ANÁLISIS FÍSICO DE LAS PÉRDIDAS (QTI) ===\n")
 
 if("channel_loss" %in% colnames(qti)){
   correlacion_perdidas <- cor(qti$channel_loss, qti$secure_key_rate)
-  cat(paste("Correlación entre pérdidas ópticas y tasa de clave:", round(correlacion_perdidas, 4), "\n"))
-  cat("Una correlación negativa confirma que el aumento de pérdidas ópticas en el canal reduce la capacidad de generación de clave segura.\n")
+  #cat(paste("Correlación entre pérdidas ópticas y tasa de clave:", round(correlacion_perdidas, 4), "\n"))
+  #cat("Una correlación negativa confirma que el aumento de pérdidas ópticas en el canal reduce la capacidad de generación de clave segura.\n")
 }
 
 # 7. ANÁLISIS DE DISTRIBUCIONES Y ESTADÍSTICAS ADICIONALES
 
-cat("\n=== DISTRIBUCIONES DE VARIABLES ===\n")
+#cat("\n=== DISTRIBUCIONES DE VARIABLES ===\n")
 
 # Cálculo de asimetría y curtosis (forma de la distribución)
 distribucion_estadisticas <- data_all %>%
@@ -171,11 +167,10 @@ distribucion_estadisticas <- data_all %>%
     curtosis_rate = mean((secure_key_rate - mean(secure_key_rate, na.rm = TRUE))^4, na.rm = TRUE) / (sd(secure_key_rate, na.rm = TRUE)^4)
   )
 
-print(distribucion_estadisticas)
 
-cat("\nInterpretación:\n")
-cat("La asimetría mide la desviación de la distribución respecto a la simetría normal.\n")
-cat("La curtosis mide la concentración de valores alrededor de la media. Estos indicadores son relevantes para detectar sesgos o comportamientos extremos.\n")
+#cat("\nInterpretación:\n")
+#cat("La asimetría mide la desviación de la distribución respecto a la simetría normal.\n")
+#cat("La curtosis mide la concentración de valores alrededor de la media. Estos indicadores son relevantes para detectar sesgos o comportamientos extremos.\n")
 
 # 8. EXPORTACIÓN DE RESULTADOS
 
@@ -190,11 +185,11 @@ write_csv(outliers, file.path(ruta, "processed/primer_analisis/OUTLIERS_DETECTAD
 write_csv(variacion_media, file.path(ruta, "processed/primer_analisis/VARIACION_TEMPORAL.csv"))
 write_csv(distribucion_estadisticas, file.path(ruta, "processed/primer_analisis/DISTRIBUCION_METRICAS.csv"))
 
-cat("\nArchivos exportados en la carpeta 'processed/primer_analisis':\n")
-cat(" - QKD_ALL_CLEAN.csv .......... Datos unificados y limpios.\n")
-cat(" - STATS_POR_FUENTE.csv ....... Estadísticas descriptivas globales.\n")
-cat(" - OUTLIERS_DETECTADOS.csv .... Registros atípicos detectados.\n")
-cat(" - VARIACION_TEMPORAL.csv ..... Estabilidad media temporal.\n")
-cat(" - DISTRIBUCION_METRICAS.csv .. Asimetría y curtosis de las variables.\n")
+#cat("\nArchivos exportados en la carpeta 'processed/primer_analisis':\n")
+#cat(" - QKD_ALL_CLEAN.csv .......... Datos unificados y limpios.\n")
+#cat(" - STATS_POR_FUENTE.csv ....... Estadísticas descriptivas globales.\n")
+#cat(" - OUTLIERS_DETECTADOS.csv .... Registros atípicos detectados.\n")
+#cat(" - VARIACION_TEMPORAL.csv ..... Estabilidad media temporal.\n")
+#cat(" - DISTRIBUCION_METRICAS.csv .. Asimetría y curtosis de las variables.\n")
 
 })

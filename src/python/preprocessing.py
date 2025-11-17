@@ -7,7 +7,6 @@ This script:
 - Normalizes column names and formats
 - Parses datetime columns
 - Cleans numeric fields
-- Removes outliers (optional)
 - Saves a unified cleaned dataset in data/processed/
 
 Author: Miguel López Ferreiro
@@ -18,16 +17,22 @@ import numpy as np
 from pathlib import Path
 
 
-# ------------------------------- PATH CONFIG ------------------------------- #
+#  PATH CONFIG  
 
-RAW_DIR = Path("data/raw")
-PROCESSED_DIR = Path("data/processed/python_preprocessing")
+BASE = Path(__file__).resolve().parents[2]
+
+RAW_DIR = BASE / "data" / "raw"
+PROCESSED_DIR = BASE / "data" / "processed" / "python_preprocessing"
 PROCESSED_NAME = "QKD_PROCESSED.csv"
 
 
-# ------------------------------- LOADING ---------------------------------- #
+#  LOADING 
 
 def load_all_raw():
+    print("DEBUG RAW_DIR:", RAW_DIR.resolve())
+    print("DEBUG EXISTS:", RAW_DIR.exists())
+    print("DEBUG LIST:", list(RAW_DIR.glob('*.csv')))
+
     """Loads every CSV inside data/raw and returns list of (df, filename)."""
     files = list(RAW_DIR.glob("*.csv"))
     datasets = []
@@ -43,7 +48,7 @@ def load_all_raw():
     return datasets
 
 
-# ------------------------------- STANDARDIZATION --------------------------- #
+#  STANDARDIZATION 
 
 def standardize_column_names(df):
     """Standardizes column names (lowercase, underscores, trimmed)."""
@@ -74,7 +79,7 @@ def detect_dataset_type(df):
     raise ValueError(f"Unknown dataset structure.\nColumns found: {cols}")
 
 
-# ------------------------------- NORMALIZATION ----------------------------- #
+#  NORMALIZATION 
 
 def normalize_qti(df):
     print("[INFO] Formatting QTI dataset...")
@@ -118,8 +123,8 @@ def normalize_toshiba(df):
 
     df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce")
 
-    # Toshiba datasets do not provide loss
-    df["loss"] = 0.0
+    # Toshiba datasets do not provide loss, so we set it to NaN
+    df["loss"] = np.nan
 
     return df[["timestamp", "qber", "skr", "loss"]]
 
@@ -134,7 +139,7 @@ def apply_dataset_specific_cleaning(df, dataset_type):
         raise ValueError(f"Unknown dataset type: {dataset_type}")
 
 
-# ------------------------------- MERGING ---------------------------------- #
+#  MERGING 
 
 def merge_datasets(dataset_list):
     """Merges all cleaned datasets into a single sorted DataFrame."""
@@ -148,7 +153,7 @@ def merge_datasets(dataset_list):
 
 
 
-# ------------------------------- SAVE ------------------------------------- #
+#  SAVE 
 
 def save_processed(df):
     PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
@@ -157,7 +162,7 @@ def save_processed(df):
     print(f"[INFO] Saved processed dataset: {output_path}")
 
 
-# ------------------------------- MAIN ------------------------------------- #
+#  MAIN 
 
 def main():
     print("[INFO] Starting preprocessing pipeline...")
@@ -179,3 +184,8 @@ def main():
     save_processed(merged)
 
     print("[INFO] Preprocessing completed successfully.")
+
+
+    # ---- ENTRY POINT ----
+if __name__ == "__main__":
+    main()
