@@ -1,13 +1,37 @@
-# src/main.py
+"""
+MAIN PIPELINE – QKD DATA ANALYZER
+"""
 
-import sys
+import subprocess
 from pathlib import Path
+import sys
 
-## We make sure that the 'python' directory is in the path
-ROOT = Path(__file__).resolve().parent
-sys.path.append(str(ROOT))
+BASE_DIR = Path(__file__).resolve().parent.parent 
 
-from python.preprocessing import main as preprocessing_main
+# RUTA CORRECTA AL SCRIPT .R EN TU PROYECTO
+R_SCRIPT = BASE_DIR / "src" / "R" / "Primer_Analisis.R"
+
+# RUTA AL EJECUTABLE DE Rscript.exe
+RSCRIPT_EXE = r"C:\Program Files\R\R-4.5.1\bin\Rscript.exe" 
+
+# SCRIPT PYTHON
+PY_SCRIPT = BASE_DIR / "src" / "python"/ "preprocessing.py"
+
+def run_r_script():
+    print("\n EXECUTING R SCRIPT \n")
+    subprocess.run([RSCRIPT_EXE, str(R_SCRIPT)], check=True)
+
+def run_python_preprocessing():
+    print("\n EXECUTING PYTHON PREPROCESSING \n")
+    subprocess.run(
+        [sys.executable, str(PY_SCRIPT)],
+        check=True,
+        cwd=BASE_DIR  
+    )
+def main():
+    run_r_script()
+    run_python_preprocessing()
+    print("\nTHE PIPELINE HAS FINISHED SATISFACTORY\n")
 
 if __name__ == "__main__":
-    preprocessing_main()
+    main()
