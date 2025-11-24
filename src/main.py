@@ -1,53 +1,59 @@
 """
 MAIN PIPELINE – QKD DATA ANALYZER
+
+Orchestrates the entire QKD data processing workflow.
 """
 
 import subprocess
 from pathlib import Path
 import sys
 
-BASE_DIR = Path(__file__).resolve().parent.parent 
+sys.path.append(str(Path(__file__).resolve().parent / "constants"))
+import constants
+sys.path.pop()
 
-# RUTA CORRECTA AL SCRIPT .R EN TU PROYECTO
-R_SCRIPT = BASE_DIR / "src" / "R" / "Primer_Analisis.R"
+PROJECT_BASE_DIR = constants.BASE_DIR
 
-# RUTA AL EJECUTABLE DE Rscript.exe
-RSCRIPT_EXE = r"C:\Program Files\R\R-4.5.1\bin\Rscript.exe" 
-
-# SCRIPTS PYTHON
-PY_SCRIPT_PREPROCESSING = BASE_DIR / "src" / "python"/ "preprocessing.py"
-PY_SCRIPT_FEATURE_ENG = BASE_DIR / "src" / "python"/ "feature_engineering.py" # ¡NUEVA RUTA!
+# EXECUTION FUNCTIONS
 
 def run_r_script():
+    """Executes the initial R exploratory analysis script."""
     print("\n EXECUTING R SCRIPT \n")
-    # Nota: Usamos str() para asegurar la compatibilidad con subprocess si RSCRIPT_EXE lo necesita
-    subprocess.run([RSCRIPT_EXE, str(R_SCRIPT)], check=True)
+    subprocess.run([constants.RSCRIPT_EXE_PATH, str(constants.R_SCRIPT_PATH)], check=True)
 
 def run_python_preprocessing():
+    """Executes the Python script for data cleaning and unification using -m."""
     print("\n EXECUTING PYTHON PREPROCESSING \n")
+    
+    # Ejecutamos como módulo, referenciando la constante del módulo
     subprocess.run(
-        [sys.executable, str(PY_SCRIPT_PREPROCESSING)], # Usamos la nueva variable
+        [sys.executable, "-m", constants.PYTHON_MODULE_PREPROCESSING],
         check=True,
-        cwd=BASE_DIR 
+        cwd=PROJECT_BASE_DIR 
     )
 
 def run_python_feature_engineering():
+    """Executes the Python script for creating temporal and statistical features using -m."""
     print("\n EXECUTING PYTHON FEATURE ENGINEERING \n")
-    # Ejecutamos el script de feature engineering con el intérprete de Python
+    
+    # Ejecutamos como módulo, referenciando la constante del módulo
     subprocess.run(
-        [sys.executable, str(PY_SCRIPT_FEATURE_ENG)],
+        [sys.executable, "-m", constants.PYTHON_MODULE_FEATURE_ENG],
         check=True,
-        cwd=BASE_DIR 
+        cwd=PROJECT_BASE_DIR 
     )
-    
+
+# MAIN PIPELINE EXECUTION
+
 def main():
-    # 1. Ejecutar análisis R inicial (opcional)
-    # run_r_script() # Si ya no es necesario, puedes comentarlo
     
-    # 2. Ejecutar Preprocesamiento Python (Limpieza/Unificación)
+    # 1. Ejecutar análisis R inicial (opcional)
+    # run_r_script()
+    
+    # 2. Ejecutar Preprocesamiento Python
     run_python_preprocessing()
     
-    # 3. Ejecutar Ingeniería de Características (Preparación para ML) - ¡NUEVA LLAMADA!
+    # 3. Ejecutar Ingeniería de Características
     run_python_feature_engineering()
     
     print("\nTHE PIPELINE HAS FINISHED SATISFACTORILY\n")
