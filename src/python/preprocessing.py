@@ -16,17 +16,7 @@ Author: Miguel López Ferreiro
 import pandas as pd
 import numpy as np
 from pathlib import Path
-
-
-# ------------------------------
-#  PATH CONFIG
-# ------------------------------
-
-BASE = Path(__file__).resolve().parents[2]
-
-RAW_DIR = BASE / "data" / "raw"
-PROCESSED_DIR = BASE / "data" / "processed" / "python_preprocessing"
-PROCESSED_NAME = "QKD_PROCESSED.csv"
+from ..constants import constants
 
 
 # ------------------------------
@@ -36,7 +26,7 @@ PROCESSED_NAME = "QKD_PROCESSED.csv"
 def load_all_raw():
     """Loads every CSV inside data/raw and returns list of (df, filename)."""
     
-    files = list(RAW_DIR.glob("*.csv"))
+    files = list(constants.RAW_DIR.glob("*.csv"))
     datasets = []
 
     if not files:
@@ -189,20 +179,21 @@ def merge_datasets(dataset_list):
     return df
 
 
-# ------------------------------
 #  SAVE
-# ------------------------------
+
 
 def save_processed(df):
-    PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
-    output_path = PROCESSED_DIR / PROCESSED_NAME
+    
+    # 1. Crear el directorio usando la constante
+    constants.PREPROCESSING_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    
+    # 2. Definir la ruta de salida
+    output_path = constants.PREPROCESSING_OUTPUT_DIR / constants.PROCESSED_FILE_NAME
+    
     df.to_csv(output_path, index=False)
     print(f"[INFO] Saved processed dataset: {output_path}")
 
-
-# ------------------------------
 #  MAIN
-# ------------------------------
 
 def main():
     print("[INFO] Starting preprocessing pipeline...")

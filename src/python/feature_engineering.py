@@ -14,33 +14,46 @@ The feature engineering focuses on:
 Input: QKD_PROCESSED.csv
 Output: QKD_FEATURES.csv
 
+Uses constants defined in the 'constants' module for paths and file names.
+
 Author: Miguel López Ferreiro
 """
 
 import pandas as pd
+import numpy as np # Necesario para el cálculo de Z-Score y otras operaciones
 from pathlib import Path
 
+# Importamos el módulo de constantes.
+# Asumiendo la estructura de importación relativa (ej. desde src/python/feature_engineering.py a src/constants/constants.py)
+from ..constants import constants 
+
+
 # ------------------------------
-# PATH CONFIG
+# CONFIGURATION FOR FEATURE CREATION (Not defined in current constants.py)
 # ------------------------------
 
-BASE = Path(__file__).resolve().parents[2]
-
-# Input directory (from the preprocessing script)
-PROCESSED_DIR = BASE / "data" / "processed" / "python_preprocessing"
-PROCESSED_NAME = "QKD_PROCESSED.csv"
-INPUT_PATH = PROCESSED_DIR / PROCESSED_NAME
-
-# Output directory for the feature-engineered dataset
-FEATURED_DIR = BASE / "data" / "processed" / "feature_engineered"
-FEATURED_NAME = "QKD_FEATURES.csv"
-OUTPUT_PATH = FEATURED_DIR / FEATURED_NAME
+# Define core metrics for feature creation (if not centralized in constants)
+CORE_METRICS = ['qber', 'skr', 'loss']
 
 # Configuration for rolling window statistics (e.g., 60 minutes)
-ROLLING_WINDOW = 60 # Typically defined by the operational monitoring interval
-LAG_WINDOWS = [1, 2, 3] # Lagging for 1, 2, and 3 previous time steps
+ROLLING_WINDOW = 60 
+LAG_WINDOWS = [1, 2, 3] 
 
+
+# ------------------------------
+# PATH CONFIG (Now derived from constants)
+# ------------------------------
+
+# Input path (from constants)
+INPUT_PATH = constants.INPUT_PROCESSED_PATH
+
+# Output path (from constants)
+OUTPUT_PATH = constants.FEATURE_ENGINEERING_OUTPUT_DIR / constants.FEATURED_FILE_NAME
+
+
+# ------------------------------
 # LOADING
+# ------------------------------
 
 def load_processed_data(file_path):
     """Loads the cleaned QKD dataset and sets the timestamp index."""
@@ -51,34 +64,30 @@ def load_processed_data(file_path):
     df = pd.read_csv(file_path)
     
     # Ensure 'timestamp' is in datetime format and set as index
-    df['timestamp'] = pd.to_datetime(df['timestamp'])
+    # Usamos constante para el nombre de columna si estuviera definida (ej. constants.TIMESTAMP_COL)
+    df['timestamp'] = pd.to_datetime(df['timestamp']) 
     df = df.set_index('timestamp')
     df = df.sort_index()
     
     return df
 
-# 1. TEMPORAL FEATURES
+# ------------------------------
+# 1. TEMPORAL FEATURES (No cambian, solo necesitan numpy si se usan sin/cos)
+# ------------------------------
 
 def create_temporal_features(df):
     """Extracts time components (hour, day of week) that might influence metrics."""
     print("[INFO] Creating temporal features...")
     
-    # Hour of the day (0-23): Useful for detecting daily cycles/traffic patterns
     df['feat_hour'] = df.index.hour
-    
-    # Day of the week (0=Monday, 6=Sunday): Useful for weekly cycles/maintenance
     df['feat_day_of_week'] = df.index.dayofweek
-    
-    # Day of the year (1-366): Less critical, but captures yearly trends
     df['feat_day_of_year'] = df.index.dayofyear
-    
-    # (Optional: If the data is periodic, use sin/cos transformations for hour/day_of_year)
-    # df['feat_hour_sin'] = np.sin(2 * np.pi * df['feat_hour'] / 24)
-    # df['feat_hour_cos'] = np.cos(2 * np.pi * df['feat_hour'] / 24)
     
     return df
 
+# ------------------------------
 # 2. LAGGED FEATURES
+# ------------------------------
 
 def create_lagged_features(df, metrics, lag_windows):
     """Creates lagged features (previous values) for the specified metrics."""
@@ -87,12 +96,13 @@ def create_lagged_features(df, metrics, lag_windows):
     for metric in metrics:
         for lag in lag_windows:
             new_col = f'feat_{metric}_lag_{lag}'
-            # Shift the metric by 'lag' periods
             df[new_col] = df[metric].shift(lag)
             
     return df
 
+# ------------------------------
 # 3. ROLLING WINDOW STATISTICS (Stability)
+# ------------------------------
 
 def create_rolling_features(df, metrics, window):
     """
@@ -108,20 +118,21 @@ def create_rolling_features(df, metrics, window):
         # Rolling Std Dev: Captures short-term variability/stability (critical for QKD)
         df[f'feat_{metric}_roll_std'] = df[metric].rolling(window=window).std()
         
-        # Rolling Min/Max: Provides short-term bounds (useful for identifying spikes)
+        # Rolling Min/Max
         df[f'feat_{metric}_roll_min'] = df[metric].rolling(window=window).min()
         df[f'feat_{metric}_roll_max'] = df[metric].rolling(window=window).max()
         
-        # Rolling Median: Less sensitive to outliers, better for central tendency
+        # Rolling Median
         df[f'feat_{metric}_roll_median'] = df[metric].rolling(window=window).median()
 
-        # Calculation of the short-term Z-Score (Deviation from the local mean)
-        # This is a very powerful feature for anomaly detection
+        # Calculation of the short-term Z-Score
         df[f'feat_{metric}_short_zscore'] = (df[metric] - df[f'feat_{metric}_roll_mean']) / df[f'feat_{metric}_roll_std']
         
     return df
 
+# ------------------------------
 # MAIN PIPELINE
+# ------------------------------
 
 def main():
     print("[INFO] Starting Feature Engineering pipeline...")
@@ -129,23 +140,16 @@ def main():
     # 1. Load Data
     df = load_processed_data(INPUT_PATH)
     
-    # Define core metrics for feature creation (QBER, SKR, Loss)
-    core_metrics = ['qber', 'skr', 'loss']
-    
     # 2. Create Temporal Features
     df = create_temporal_features(df)
     
     # 3. Create Lagged Features
-    df = create_lagged_features(df, core_metrics, LAG_WINDOWS)
+    df = create_lagged_features(df, CORE_METRICS, LAG_WINDOWS)
     
     # 4. Create Rolling Statistics Features
-    df = create_rolling_features(df, core_metrics, ROLLING_WINDOW)
+    df = create_rolling_features(df, CORE_METRICS, ROLLING_WINDOW)
 
     # 5. Handle Missing Values
-    # Features created with rolling windows or lags will have NaN values initially.
-    # Since these NaNs typically represent the beginning of the time series,
-    # and we are focusing on anomaly detection in steady state, we drop them.
-    # Note: The dropna must occur *after* all features have been created.
     initial_rows = len(df)
     df_featured = df.dropna()
     rows_dropped = initial_rows - len(df_featured)
@@ -153,17 +157,18 @@ def main():
     print(f"[INFO] Dropped {rows_dropped} rows due to NaN values (lags/rolling stats initialization).")
     
     # 6. Final Selection of Features and Standardization
-    # The ML models will be trained on the new features. We keep the original
-    # metrics and source for context, but the final model input will use the new features.
     
-    # Select only the features (columns starting with 'feat_') + original metrics/source
+    # Seleccionamos las métricas primarias para el contexto (qber, skr, loss, source)
+    context_cols = CORE_METRICS + ['source'] 
+    
+    # Seleccionamos las nuevas características
     feature_cols = [col for col in df_featured.columns if col.startswith('feat_')]
-    context_cols = core_metrics + ['source'] # Keep original metrics and source for validation
     
     df_final = df_featured[context_cols + feature_cols]
     
     # 7. Save Processed Data
-    FEATURED_DIR.mkdir(parents=True, exist_ok=True)
+    # Usamos constante para el directorio de salida
+    constants.FEATURE_ENGINEERING_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     df_final.to_csv(OUTPUT_PATH)
     
     print(f"[INFO] Saved final feature set with {len(feature_cols)} features: {OUTPUT_PATH}")
