@@ -3,8 +3,9 @@ Preprocessing module for Quantum Key Distribution (QKD) datasets.
 
 This script:
 - Loads all raw CSVs from data/raw/
-- Detects dataset type (QTI or Toshiba)
+- Detects dataset type (QTI, Toshiba, or Unknown)
 - Normalizes column names and formats
+- Adds a 'source' column indicating the origin file
 - Parses datetime columns
 - Cleans numeric fields
 - Saves a unified cleaned dataset in data/processed/
@@ -17,7 +18,9 @@ import numpy as np
 from pathlib import Path
 
 
-#  PATH CONFIG  
+# ------------------------------
+#  PATH CONFIG
+# ------------------------------
 
 BASE = Path(__file__).resolve().parents[2]
 
@@ -26,14 +29,13 @@ PROCESSED_DIR = BASE / "data" / "processed" / "python_preprocessing"
 PROCESSED_NAME = "QKD_PROCESSED.csv"
 
 
-#  LOADING 
+# ------------------------------
+#  LOADING
+# ------------------------------
 
 def load_all_raw():
-    print("DEBUG RAW_DIR:", RAW_DIR.resolve())
-    print("DEBUG EXISTS:", RAW_DIR.exists())
-    print("DEBUG LIST:", list(RAW_DIR.glob('*.csv')))
-
     """Loads every CSV inside data/raw and returns list of (df, filename)."""
+    
     files = list(RAW_DIR.glob("*.csv"))
     datasets = []
 
@@ -48,7 +50,9 @@ def load_all_raw():
     return datasets
 
 
-#  STANDARDIZATION 
+# ------------------------------
+#  STANDARDIZATION
+# ------------------------------
 
 def standardize_column_names(df):
     """Standardizes column names (lowercase, underscores, trimmed)."""
@@ -65,23 +69,26 @@ def standardize_column_names(df):
 
 def detect_dataset_type(df):
     """Detects dataset based on its columns."""
-
     cols = set(df.columns)
 
-    # QTI STRUCTURE (confirmed)
+    # QTI STRUCTURE
     if {"datetime", "secure_key_rate", "qber"} <= cols:
         return "QTI"
 
-    # TOSHIBA STRUCTURE (confirmed)
+    # TOSHIBA STRUCTURE
     if {"time", "qber", "securekeyratebps"} <= cols:
         return "TOSHIBA"
 
-    raise ValueError(f"Unknown dataset structure.\nColumns found: {cols}")
+    return "UNKNOWN"
 
 
-#  NORMALIZATION 
+# ------------------------------
+#  NORMALIZATION FUNCTIONS
+# ------------------------------
 
-def normalize_qti(df):
+def normalize_qti(df, source_name):
+    """Normalizes QTI dataset to unified schema."""
+    
     print("[INFO] Formatting QTI dataset...")
 
     df["timestamp"] = pd.to_datetime(df["datetime"], errors="coerce")
@@ -91,55 +98,85 @@ def normalize_qti(df):
         "channel_loss": "loss",
     })
 
-    # Convert to numeric
     df["skr"] = pd.to_numeric(df["skr"], errors="coerce")
     df["loss"] = pd.to_numeric(df["loss"], errors="coerce")
     df["qber"] = pd.to_numeric(df["qber"], errors="coerce")
 
-    # QTI SKR is in kbps → convert to bps
-    df["skr"] = df["skr"] * 1000  
+    df["source"] = source_name.upper()
 
-    return df[["timestamp", "qber", "skr", "loss"]]
-
+    return df[["timestamp", "qber", "skr", "loss", "source"]]
 
 
-def normalize_toshiba(df):
-    """
-    Normalizes Toshiba dataset to the unified schema.
-
-    Original columns :
-    - Time
-    - QBER
-    - SecureKeyRate(bps)
-    """
-
+def normalize_toshiba(df, source_name):
+    """Normalizes Toshiba dataset to unified schema."""
+    
     print("[INFO] Formatting Toshiba dataset...")
 
     df = df.rename(columns={
         "time": "timestamp",
-        "qber": "qber",
         "securekeyratebps": "skr"
     })
 
     df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce")
 
-    # Toshiba datasets do not provide loss, so we set it to NaN
+    df["qber"] = pd.to_numeric(df["qber"], errors="coerce")
+    df["skr"] = pd.to_numeric(df["skr"], errors="coerce")
+
     df["loss"] = np.nan
+    df["source"] = source_name.upper()
 
-    return df[["timestamp", "qber", "skr", "loss"]]
+    return df[["timestamp", "qber", "skr", "loss", "source"]]
 
 
-def apply_dataset_specific_cleaning(df, dataset_type):
-    """Routes dataframe to the correct normalization function."""
+def normalize_unknown(df, source_name):
+    """Attempts best-effort normalization for unknown datasets."""
+    
+    print(f"[WARNING] Unknown dataset structure → Using fallback normalization for {source_name}")
+
+    # Try to detect timestamp-like column
+    timestamp_col = None
+    for c in df.columns:
+        if "time" in c or "date" in c:
+            timestamp_col = c
+            break
+
+    if timestamp_col is None:
+        raise ValueError(f"Unknown dataset {source_name} does not contain any time-like column.")
+
+    df["timestamp"] = pd.to_datetime(df[timestamp_col], errors="coerce")
+
+    # Try to detect qber or skr-like values
+    df["qber"] = df.filter(regex="qber|error", axis=1).iloc[:, 0] if df.filter(regex="qber|error", axis=1).shape[1] > 0 else np.nan
+    df["skr"] = df.filter(regex="skr|key", axis=1).iloc[:, 0] if df.filter(regex="skr|key", axis=1).shape[1] > 0 else np.nan
+
+    df["qber"] = pd.to_numeric(df["qber"], errors="coerce")
+    df["skr"] = pd.to_numeric(df["skr"], errors="coerce")
+
+    df["loss"] = np.nan
+    df["source"] = "UNKNOWN_" + source_name.upper()
+
+    return df[["timestamp", "qber", "skr", "loss", "source"]]
+
+
+# ------------------------------
+#  ROUTER
+# ------------------------------
+
+def apply_dataset_specific_cleaning(df, dataset_type, source_name):
+
     if dataset_type == "QTI":
-        return normalize_qti(df)
+        return normalize_qti(df, source_name)
+
     elif dataset_type == "TOSHIBA":
-        return normalize_toshiba(df)
+        return normalize_toshiba(df, source_name)
+
     else:
-        raise ValueError(f"Unknown dataset type: {dataset_type}")
+        return normalize_unknown(df, source_name)
 
 
-#  MERGING 
+# ------------------------------
+#  MERGING
+# ------------------------------
 
 def merge_datasets(dataset_list):
     """Merges all cleaned datasets into a single sorted DataFrame."""
@@ -152,8 +189,9 @@ def merge_datasets(dataset_list):
     return df
 
 
-
-#  SAVE 
+# ------------------------------
+#  SAVE
+# ------------------------------
 
 def save_processed(df):
     PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
@@ -162,7 +200,9 @@ def save_processed(df):
     print(f"[INFO] Saved processed dataset: {output_path}")
 
 
-#  MAIN 
+# ------------------------------
+#  MAIN
+# ------------------------------
 
 def main():
     print("[INFO] Starting preprocessing pipeline...")
@@ -176,7 +216,7 @@ def main():
 
         print(f"[INFO] Detected dataset type: {dtype} ({name})")
 
-        df_clean = apply_dataset_specific_cleaning(df, dtype)
+        df_clean = apply_dataset_specific_cleaning(df, dtype, name)
         cleaned.append(df_clean)
 
     merged = merge_datasets(cleaned)
@@ -186,6 +226,7 @@ def main():
     print("[INFO] Preprocessing completed successfully.")
 
 
-    # ---- ENTRY POINT ----
+# ---- ENTRY POINT ----
+
 if __name__ == "__main__":
     main()
