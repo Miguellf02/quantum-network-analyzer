@@ -40,9 +40,7 @@ OUTPUT_PATH = FEATURED_DIR / FEATURED_NAME
 ROLLING_WINDOW = 60 # Typically defined by the operational monitoring interval
 LAG_WINDOWS = [1, 2, 3] # Lagging for 1, 2, and 3 previous time steps
 
-# ------------------------------
 # LOADING
-# ------------------------------
 
 def load_processed_data(file_path):
     """Loads the cleaned QKD dataset and sets the timestamp index."""
@@ -59,9 +57,7 @@ def load_processed_data(file_path):
     
     return df
 
-# ------------------------------
 # 1. TEMPORAL FEATURES
-# ------------------------------
 
 def create_temporal_features(df):
     """Extracts time components (hour, day of week) that might influence metrics."""
@@ -82,9 +78,7 @@ def create_temporal_features(df):
     
     return df
 
-# ------------------------------
 # 2. LAGGED FEATURES
-# ------------------------------
 
 def create_lagged_features(df, metrics, lag_windows):
     """Creates lagged features (previous values) for the specified metrics."""
@@ -98,9 +92,7 @@ def create_lagged_features(df, metrics, lag_windows):
             
     return df
 
-# ------------------------------
 # 3. ROLLING WINDOW STATISTICS (Stability)
-# ------------------------------
 
 def create_rolling_features(df, metrics, window):
     """
@@ -129,9 +121,7 @@ def create_rolling_features(df, metrics, window):
         
     return df
 
-# ------------------------------
 # MAIN PIPELINE
-# ------------------------------
 
 def main():
     print("[INFO] Starting Feature Engineering pipeline...")
