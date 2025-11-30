@@ -39,6 +39,7 @@ R_SCRIPT_PATH = BASE_DIR / "src" / "R" / "Primer_Analisis.R"
 # Python Modules for use with 'python -m' 
 PYTHON_MODULE_PREPROCESSING = "src.python.preprocessing"
 PYTHON_MODULE_FEATURE_ENG = "src.python.feature_engineering"
+PYTHON_MODULE_IFOREST = "src.python.train_iforest"
 
 # Absolute Paths for Python scripts 
 PY_SCRIPT_PREPROCESSING_PATH = BASE_DIR / "src" / "python" / "preprocessing.py"

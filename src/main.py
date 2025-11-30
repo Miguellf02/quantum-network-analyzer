@@ -43,6 +43,16 @@ def run_python_feature_engineering():
         cwd=PROJECT_BASE_DIR 
     )
 
+def run_python_iforest():
+    """Executes the Isolation Forest training script using -m."""
+    print("\n EXECUTING ISOLATION FOREST TRAINING \n")
+    
+    subprocess.run(
+        [sys.executable, "-m", constants.PYTHON_MODULE_IFOREST],
+        check=True,
+        cwd=PROJECT_BASE_DIR
+    )
+
 # MAIN PIPELINE EXECUTION
 
 def main():
@@ -55,6 +65,9 @@ def main():
     
     # 3. Ejecutar Ingeniería de Características
     run_python_feature_engineering()
+
+    # 4. Entrenar Isolation Forest
+    run_python_iforest()
     
     print("\nTHE PIPELINE HAS FINISHED SATISFACTORILY\n")
 

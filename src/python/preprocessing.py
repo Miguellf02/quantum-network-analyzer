@@ -24,18 +24,19 @@ from ..constants import constants
 # ------------------------------
 
 def load_all_raw():
-    """Loads every CSV inside data/raw and returns list of (df, filename)."""
+    """Loads only QKD CSVs from data/raw/qkd and returns list of (df, filename)."""
     
-    files = list(constants.RAW_DIR.glob("*.csv"))
+    qkd_path = constants.RAW_DIR / "qkd"
+    files = list(qkd_path.glob("*.csv"))
     datasets = []
 
     if not files:
-        raise FileNotFoundError("No CSV files found in data/raw/. Add datasets first.")
+        raise FileNotFoundError(f"No CSV files found in {qkd_path}. Add QKD datasets first.")
 
     for f in files:
         df = pd.read_csv(f)
         datasets.append((df, f.stem))
-        print(f"[INFO] Loaded raw file: {f.name}")
+        print(f"[INFO] Loaded QKD raw file: {f.name}")
 
     return datasets
 
