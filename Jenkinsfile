@@ -1,6 +1,6 @@
 pipeline {
 
-    """ Usa el nodo por defecto de Jenkins (sin Docker)"""
+    // Usa el nodo por defecto de Jenkins 
     agent any
 
     environment {
