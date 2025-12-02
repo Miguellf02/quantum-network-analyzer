@@ -1,10 +1,5 @@
 pipeline {
-    agent {
-        docker {
-            image 'python:3.10-slim'
-            args '-u'   // evita problemas de buffering
-        }
-    }
+    agent any
 
     stages {
 
@@ -14,9 +9,10 @@ pipeline {
             }
         }
 
-        stage('Setup Python env') {
+        stage('Setup Python environment') {
             steps {
-                sh """
+                sh '''
+                    python3 --version || true
                     python3 -m venv venv
                     . venv/bin/activate
 
@@ -24,31 +20,33 @@ pipeline {
                         pip install --upgrade pip
                         pip install -r requirements.txt
                     else
-                        echo "No requirements.txt found — installing essential packages"
-                        pip install pandas numpy scikit-learn matplotlib seaborn
+                        echo "No requirements.txt found, installing basics"
+                        pip install numpy pandas scikit-learn matplotlib seaborn
                     fi
-                """
+                '''
             }
         }
 
         stage('Run QKD Pipeline') {
             steps {
-                sh """
+                sh '''
                     . venv/bin/activate
                     python src/main.py
-                """
+                '''
             }
         }
 
     }
 
     post {
+        always {
+            echo "Pipeline finished."
+        }
         success {
-            archiveArtifacts artifacts: '**/results/**, **/*.csv, **/*.pkl, **/logs/**', fingerprint: true
-            echo "Pipeline ejecutada correctamente."
+            echo "Pipeline SUCCESS"
         }
         failure {
-            echo "Falló la ejecución de la pipeline."
+            echo "Pipeline FAILED"
         }
     }
 }
