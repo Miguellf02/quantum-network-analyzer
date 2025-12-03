@@ -40,6 +40,7 @@ R_SCRIPT_PATH = BASE_DIR / "src" / "R" / "Primer_Analisis.R"
 PYTHON_MODULE_PREPROCESSING = "src.python.preprocessing"
 PYTHON_MODULE_FEATURE_ENG = "src.python.feature_engineering"
 PYTHON_MODULE_IFOREST = "src.python.train_iforest"
+PYTHON_MODULE_AUTOENCODER = "src.python.train_autoencoder"
 
 # Absolute Paths for Python scripts 
 PY_SCRIPT_PREPROCESSING_PATH = BASE_DIR / "src" / "python" / "preprocessing.py"

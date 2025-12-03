@@ -1,6 +1,5 @@
 pipeline {
 
-    // Usa el nodo por defecto de Jenkins 
     agent any
 
     environment {
@@ -16,14 +15,13 @@ pipeline {
             }
         }
 
-        /*
-           - Instala dependencias dentro de un venv aislado
-         */
         stage('Setup Python Environment') {
             steps {
                 echo "🐍 Creating Python virtual env..."
 
                 sh """
+                    set -e
+
                     python3 --version
 
                     # Crear entorno virtual
@@ -32,14 +30,16 @@ pipeline {
                     # Activar entorno
                     . ${VENV}/bin/activate
 
+                    # Asegurar pip actualizado
+                    python -m pip install --upgrade pip
+
                     # Instalar dependencias
                     if [ -f requirements.txt ]; then
                         echo 'Installing from requirements.txt...'
-                        pip install --upgrade pip
-                        pip install -r requirements.txt
+                        python -m pip install -r requirements.txt
                     else
                         echo '⚠ No requirements.txt found, installing basics...'
-                        pip install numpy pandas scikit-learn matplotlib seaborn
+                        python -m pip install numpy pandas scikit-learn matplotlib seaborn
                     fi
                 """
             }
@@ -50,6 +50,7 @@ pipeline {
                 echo " Running QKD Analysis Pipeline..."
 
                 sh """
+                    set -e
                     . ${VENV}/bin/activate
                     python src/main.py
                 """
@@ -63,7 +64,6 @@ pipeline {
                 sh """
                     test -f data/processed/python_preprocessing/QKD_PROCESSED.csv
                     test -f data/processed/feature_engineered/QKD_FEATURES.csv
-
                     echo 'Critical artifacts found ✔'
                 """
             }
