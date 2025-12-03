@@ -1,254 +1,153 @@
 """
-Evaluation Module for Isolation Forest Model on QKD Operational Data
-====================================================================
-
-This script performs a full diagnostic analysis of the Isolation Forest model
-trained over engineered QKD features.
-
-It generates:
-    - Time-block anomaly plots
-    - QBER vs anomaly score comparison
-    - SKR vs anomaly score comparison
-    - Histogram of anomaly scores
-    - Ranking of top anomalies
-    - Correlation heatmap (matplotlib only, no seaborn)
-
-Author:
-    Miguel López Ferreiro
+train_iforest.py
+------------------------------------
+Entrenamiento del modelo Isolation Forest usando QKD_FEATURES.csv
+Generado por feature_engineering.py
 """
 
+import os
+import joblib
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-from pathlib import Path
+from sklearn.ensemble import IsolationForest
 from sklearn.preprocessing import StandardScaler
-from ..constants import constants
 
+# Importar paths centralizados
+from src.constants.constants import (
+    INPUT_FEATURED_PATH,
+    MODEL_OUTPUT_DIR
+)
 
-# ===============================================================
-# CONFIG PATHS
-# ===============================================================
+# ================================================================
+# ---------------------- UTILIDADES ------------------------------
+# ================================================================
 
-SCORES_PATH = constants.MODEL_OUTPUT_DIR / "iforest_scores.csv"
-OUTPUT_DIR  = constants.MODEL_OUTPUT_DIR / "evaluation"
-
-PLOT_BLOCKS_PATH     = OUTPUT_DIR / "anomalies_by_blocks.png"
-PLOT_QBER_PATH       = OUTPUT_DIR / "qber_vs_anomaly.png"
-PLOT_SKR_PATH        = OUTPUT_DIR / "skr_vs_anomaly.png"
-PLOT_HIST_PATH       = OUTPUT_DIR / "anomaly_histogram.png"
-PLOT_HEATMAP_PATH    = OUTPUT_DIR / "feature_correlations.png"
-TOP_ANOMALIES_PATH   = OUTPUT_DIR / "top_anomalies.csv"
-
-
-
-# ===============================================================
-# LOAD PROCESSED SCORES
-# ===============================================================
-
-def load_scores():
-    """Loads the CSV produced by train_iforest.py."""
-
-    if not SCORES_PATH.exists():
+def load_featured_dataset():
+    """Carga el dataset con todas las features."""
+    if not INPUT_FEATURED_PATH.exists():
         raise FileNotFoundError(
-            f"Isolation Forest score file not found at {SCORES_PATH}.\n"
-            "Run train_iforest.py first."
+            f"No se encuentra el archivo de características:\n{INPUT_FEATURED_PATH}"
         )
 
-    print(f"[INFO] Loading scores from: {SCORES_PATH}")
-
-    df = pd.read_csv(SCORES_PATH)
-    df["timestamp"] = pd.to_datetime(df["timestamp"])
-    df = df.sort_values("timestamp")
-
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-
+    df = pd.read_csv(INPUT_FEATURED_PATH)
+    print(f"[INFO] Dataset cargado: {df.shape[0]} filas, {df.shape[1]} columnas")
     return df
 
 
+def select_numeric_features(df):
+    """
+    Selecciona columnas numéricas, reemplaza inf/-inf por NaN
+    y elimina filas no válidas.
+    Devuelve:
+        X_clean  = características válidas
+        df_clean = dataframe original alineado
+    """
 
-# ===============================================================
-# TIME-BLOCK PLOT
-# ===============================================================
+    # 1. Selección numérica
+    X = df.select_dtypes(include=[np.number])
 
-def plot_anomalies_by_time_blocks(df):
+    if X.empty:
+        raise ValueError("No hay columnas numéricas en el dataset.")
 
-    print("[INFO] Plotting anomaly scores by temporal blocks...")
+    # 2. Reemplazar inf y -inf
+    X = X.replace([np.inf, -np.inf], np.nan)
 
-    df = df.copy()
-    df["time_diff"] = df["timestamp"].diff().dt.days
+    # 3. Eliminar filas con NaN
+    valid_idx = X.dropna().index
+    X_clean = X.loc[valid_idx]
+    df_clean = df.loc[valid_idx]
 
-    block_starts = df[df["time_diff"] > 5].index.tolist()
-    block_starts = [0] + block_starts + [len(df)]
+    print(f"[INFO] Columnas numéricas seleccionadas: {X_clean.shape[1]}")
+    print(f"[INFO] Filas válidas tras limpieza: {X_clean.shape[0]} / {df.shape[0]}")
 
-    plt.figure(figsize=(16, 6))
-
-    for i in range(len(block_starts) - 1):
-        start = block_starts[i]
-        end = block_starts[i + 1]
-        block = df.iloc[start:end]
-
-        plt.plot(
-            block["timestamp"],
-            block["anomaly_score"],
-            label=f"Block {i+1}",
-            linewidth=1.2
-        )
-
-        anomalies = block[block["is_anomaly"] == 1]
-        plt.scatter(
-            anomalies["timestamp"],
-            anomalies["anomaly_score"],
-            color="red",
-            s=16
-        )
-
-    plt.xlabel("Timestamp")
-    plt.ylabel("Anomaly Score")
-    plt.title("Isolation Forest — Anomaly Detection (Time Blocks)")
-    plt.grid(True)
-    plt.legend()
-    plt.tight_layout()
-
-    plt.savefig(PLOT_BLOCKS_PATH)
-    plt.close()
-
-    print(f"[INFO] Saved → {PLOT_BLOCKS_PATH}")
+    return X_clean, df_clean
 
 
-
-# ===============================================================
-# QBER VS ANOMALY
-# ===============================================================
-
-def plot_qber_vs_anomaly(df):
-
-    print("[INFO] Plotting QBER vs anomaly score...")
-
-    plt.figure(figsize=(12, 5))
-    plt.scatter(df["qber"], df["anomaly_score"], s=12, alpha=0.4)
-    plt.xlabel("QBER")
-    plt.ylabel("Anomaly Score")
-    plt.title("QBER vs Anomaly Score")
-    plt.grid(True)
-    plt.tight_layout()
-
-    plt.savefig(PLOT_QBER_PATH)
-    plt.close()
-
-    print(f"[INFO] Saved → {PLOT_QBER_PATH}")
+def standardize_features(X):
+    """Estandarización del espacio vectorial."""
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
+    return X_scaled, scaler
 
 
+def train_isolation_forest(
+        X_scaled,
+        contamination=0.01,
+        n_estimators=600,
+        max_samples="auto",
+        random_state=42):
 
-# ===============================================================
-# SKR VS ANOMALY
-# ===============================================================
+    model = IsolationForest(
+        contamination=contamination,
+        n_estimators=n_estimators,
+        max_samples=max_samples,
+        bootstrap=False,
+        n_jobs=-1,
+        random_state=random_state
+    )
 
-def plot_skr_vs_anomaly(df):
-
-    print("[INFO] Plotting SKR vs anomaly score...")
-
-    plt.figure(figsize=(12, 5))
-    plt.scatter(df["skr"], df["anomaly_score"], s=12, alpha=0.4)
-    plt.xlabel("SKR (bits/s)")
-    plt.ylabel("Anomaly Score")
-    plt.title("SKR vs Anomaly Score")
-    plt.grid(True)
-    plt.tight_layout()
-
-    plt.savefig(PLOT_SKR_PATH)
-    plt.close()
-
-    print(f"[INFO] Saved → {PLOT_SKR_PATH}")
+    model.fit(X_scaled)
+    return model
 
 
-
-# ===============================================================
-# HISTOGRAM OF ANOMALY SCORES
-# ===============================================================
-
-def plot_anomaly_histogram(df):
-
-    print("[INFO] Plotting anomaly score histogram...")
-
-    plt.figure(figsize=(10, 5))
-    plt.hist(df["anomaly_score"], bins=40, color="skyblue", edgecolor="black")
-    plt.xlabel("Anomaly Score")
-    plt.ylabel("Frequency")
-    plt.title("Distribution of Anomaly Scores")
-    plt.tight_layout()
-
-    plt.savefig(PLOT_HIST_PATH)
-    plt.close()
-
-    print(f"[INFO] Saved → {PLOT_HIST_PATH}")
+def compute_anomaly_scores(model, X_scaled):
+    """Convierte scores a formato intuitivo: mayor = más anómalo."""
+    raw_scores = model.score_samples(X_scaled)
+    return -raw_scores
 
 
+def save_outputs(df_clean, scores, model, scaler):
+    """Guarda CSV, modelo y scaler."""
+    MODEL_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-# ===============================================================
-# CORRELATION HEATMAP (WITHOUT SEABORN)
-# ===============================================================
+    # 1) CSV de salida
+    df_out = df_clean.copy()
+    df_out["anomaly_score"] = scores
+    output_csv = MODEL_OUTPUT_DIR / "IFOREST_RESULTS.csv"
+    df_out.to_csv(output_csv, index=False)
+    print(f"[OK] Resultados guardados en: {output_csv}")
 
-def plot_feature_correlation(df):
+    # 2) Modelo
+    model_path = MODEL_OUTPUT_DIR / "IFOREST_MODEL.joblib"
+    joblib.dump(model, model_path)
+    print(f"[OK] Modelo guardado en: {model_path}")
 
-    print("[INFO] Computing feature correlation heatmap...")
-
-    feature_cols = [c for c in df.columns if c.startswith("feat_")]
-
-    corr = df[feature_cols].corr().values
-
-    plt.figure(figsize=(14, 12))
-    plt.imshow(corr, cmap="coolwarm", interpolation="nearest")
-    plt.colorbar()
-
-    plt.title("Correlation Heatmap of Engineered Features")
-    plt.tight_layout()
-
-    plt.savefig(PLOT_HEATMAP_PATH)
-    plt.close()
-
-    print(f"[INFO] Saved → {PLOT_HEATMAP_PATH}")
+    # 3) Scaler
+    scaler_path = MODEL_OUTPUT_DIR / "IFOREST_SCALER.joblib"
+    joblib.dump(scaler, scaler_path)
+    print(f"[OK] Scaler guardado en: {scaler_path}")
 
 
-
-# ===============================================================
-# TOP ANOMALIES TABLE
-# ===============================================================
-
-def export_top_anomalies(df, n=20):
-
-    print(f"[INFO] Exporting top {n} anomalies...")
-
-    df_sorted = df.sort_values("anomaly_score", ascending=False)
-    df_top = df_sorted.head(n)
-
-    df_top.to_csv(TOP_ANOMALIES_PATH, index=False)
-
-    print(f"[INFO] Saved → {TOP_ANOMALIES_PATH}")
-
-
-
-# ===============================================================
-# MAIN
-# ===============================================================
+# ================================================================
+# -------------------------- MAIN --------------------------------
+# ================================================================
 
 def main():
+    print("\n========== Isolation Forest Training ==========\n")
 
-    print("\n[INFO] Starting evaluation of Isolation Forest...\n")
+    # 1. Cargar dataset
+    df = load_featured_dataset()
 
-    df = load_scores()
+    # 2. Seleccionar columnas numéricas + limpiar NAN/INF
+    X_clean, df_clean = select_numeric_features(df)
 
-    # Standard evaluation plots
-    plot_anomalies_by_time_blocks(df)
-    plot_qber_vs_anomaly(df)
-    plot_skr_vs_anomaly(df)
-    plot_anomaly_histogram(df)
-    plot_feature_correlation(df)
+    # 3. Estandarizar
+    print("[INFO] Estandarizando características...")
+    X_scaled, scaler = standardize_features(X_clean)
 
-    # Top anomalies
-    export_top_anomalies(df, n=30)
+    # 4. Entrenar Isolation Forest
+    print("[INFO] Entrenando Isolation Forest...")
+    model = train_isolation_forest(X_scaled)
 
-    print("\n[INFO] Evaluation completed successfully.\n")
+    # 5. Scores
+    print("[INFO] Calculando anomaly scores...")
+    scores = compute_anomaly_scores(model, X_scaled)
 
+    # 6. Guardar salidas
+    print("[INFO] Guardando resultados y modelo...")
+    save_outputs(df_clean, scores, model, scaler)
+
+    print("\n[OK] Entrenamiento Isolation Forest COMPLETADO.\n")
 
 
 if __name__ == "__main__":
