@@ -53,6 +53,17 @@ def run_python_iforest():
         cwd=PROJECT_BASE_DIR
     )
 
+
+def run_python_autoencoder():
+    """Executes the Autoencoder training script using -m."""
+    print("\n EXECUTING AUTOENCODER TRAINING \n")
+    
+    subprocess.run(
+        [sys.executable, "-m", constants.PYTHON_MODULE_AUTOENCODER],
+        check=True,
+        cwd=PROJECT_BASE_DIR
+    )
+
 # MAIN PIPELINE EXECUTION
 
 def main():
@@ -68,6 +79,9 @@ def main():
 
     # 4. Entrenar Isolation Forest
     run_python_iforest()
+
+    # 5. Entrenar Autoencoder
+    run_python_autoencoder()
     
     print("\nTHE PIPELINE HAS FINISHED SATISFACTORILY\n")
 
