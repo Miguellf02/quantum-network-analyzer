@@ -181,7 +181,25 @@ def merge_datasets(dataset_list):
 
 
 #  SAVE
-
+# En merge_datasets o antes de save_processed:
+def resample_qkd_data(df):
+    # Agrupamos por fuente para no mezclar tiempos de máquinas distintas
+    resampled_list = []
+    for source in df['source'].unique():
+        source_df = df[df['source'] == source].copy()
+        source_df = source_df.set_index('timestamp')
+        
+        # Resample a 1 minuto (o la frecuencia que decidas)
+        # Usamos mean() para métricas y ffill() para el nombre de la fuente
+        source_df = source_df.resample('1T').mean() 
+        source_df['source'] = source
+        
+        # Opcional: Interpolar huecos pequeños para que el LSTM no vea NaNs
+        source_df[['qber', 'skr']] = source_df[['qber', 'skr']].interpolate(method='linear', limit=2)
+        
+        resampled_list.append(source_df.reset_index())
+    
+    return pd.concat(resampled_list, ignore_index=True)
 
 def save_processed(df):
     
