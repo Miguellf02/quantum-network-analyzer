@@ -41,6 +41,8 @@ PYTHON_MODULE_PREPROCESSING = "src.python.preprocessing"
 PYTHON_MODULE_FEATURE_ENG = "src.python.feature_engineering"
 PYTHON_MODULE_IFOREST = "src.python.train_iforest"
 PYTHON_MODULE_AUTOENCODER = "src.python.train_autoencoder"
+PYTHON_MODULE_MERGING = "src.python.merging_datasets"
+PYTHON_MODULE_ANALYSIS = "src.python.analyze_anomalies"
 
 # Absolute Paths for Python scripts 
 PY_SCRIPT_PREPROCESSING_PATH = BASE_DIR / "src" / "python" / "preprocessing.py"

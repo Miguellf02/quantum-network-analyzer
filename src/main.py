@@ -64,6 +64,28 @@ def run_python_autoencoder():
         cwd=PROJECT_BASE_DIR
     )
 
+
+def run_python_merging():
+    """Executes the merging and comparison of IF and Autoencoder results."""
+    print("\n EXECUTING MERGING OF ANOMALY RESULTS (IF + AUTOENCODER) \n")
+    
+    subprocess.run(
+        [sys.executable, "-m", constants.PYTHON_MODULE_MERGING],
+        check=True,
+        cwd=PROJECT_BASE_DIR
+    )
+
+def run_python_anomaly_analysis():
+    """Executes the anomaly analysis script using -m."""
+    print("\n EXECUTING ANOMALY ANALYSIS \n")
+
+    subprocess.run(
+        [sys.executable, "-m", constants.PYTHON_MODULE_ANALYSIS],
+        check=True,
+        cwd=PROJECT_BASE_DIR
+    )
+
+
 # MAIN PIPELINE EXECUTION
 
 def main():
@@ -83,6 +105,11 @@ def main():
     # 5. Entrenar Autoencoder
     run_python_autoencoder()
     
+        # 6. Fusión y análisis comparativo IF + Autoencoder
+    run_python_merging()
+    
+    run_python_anomaly_analysis()
+
     print("\nTHE PIPELINE HAS FINISHED SATISFACTORILY\n")
 
 if __name__ == "__main__":
