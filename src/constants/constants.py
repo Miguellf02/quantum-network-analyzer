@@ -43,7 +43,9 @@ PYTHON_MODULE_IFOREST = "src.python.train_iforest"
 PYTHON_MODULE_AUTOENCODER = "src.python.train_autoencoder"
 PYTHON_MODULE_MERGING = "src.python.merging_datasets"
 PYTHON_MODULE_ANALYSIS = "src.python.analyze_anomalies"
-
+PYTHON_MODULE_PLOTS = "src.python.plots"
 # Absolute Paths for Python scripts 
 PY_SCRIPT_PREPROCESSING_PATH = BASE_DIR / "src" / "python" / "preprocessing.py"
 PY_SCRIPT_FEATURE_ENG_PATH = BASE_DIR / "src" / "python" / "feature_engineering.py"
+
+PLOTS_DIR = DATA_DIR / "plots"
