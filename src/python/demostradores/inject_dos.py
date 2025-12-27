@@ -9,7 +9,7 @@ def inject():
     df = pd.read_csv(RAW_PATH)
     
     # Definimos el punto de ataque (ej. de la fila 500 a la 550)
-    start, end = 500, 550
+    start, end = 9500, 9550
     
     print(f"[ATTACK] Inyectando DoS en {RAW_PATH.name}...")
     

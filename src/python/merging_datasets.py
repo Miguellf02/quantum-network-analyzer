@@ -28,7 +28,7 @@ SOURCES = [
     "TOSHIBA-2025-W27"
 ]
 
-AUTOENCODER_PERCENTILE = 99  # umbral de anomalía AE
+AUTOENCODER_PERCENTILE = 99.5  # umbral de anomalía AE
 
 
 # ================================================================

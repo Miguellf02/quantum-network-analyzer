@@ -23,50 +23,59 @@ from pathlib import Path
 
 def clean_and_restore():
     """
-    Limpia los resultados de ejecuciones anteriores y restaura los datasets originales.
-    Garantiza un entorno de ejecución limpio para el pipeline.
+    Limpia a fondo los resultados de ejecuciones pasadas y restaura el dataset 2025.
     """
-    print("\n [CLEANING] Iniciando limpieza y restauración del entorno... \n")
+    print("\n [CLEANING] Iniciando limpieza profunda del entorno... \n")
     
-    # 1. Rutas de limpieza (según tu estructura en constants)
-    processed_dir = Path("data/processed")
-    plots_dir = Path("data/plots")
-    models_dir = Path("data/models")
-    # Borrar contenido de data/processed (excepto primer_analisis)
+    # Definir rutas base usando la constante del proyecto
+    # Asegúrate de que PROJECT_BASE_DIR esté bien definido en tu main
+    base_path = Path(__file__).resolve().parents[1] 
+    
+    processed_dir = base_path / "data" / "processed"
+    plots_dir = base_path / "data" / "plots"
+    models_dir = processed_dir / "models"
+
+    # 1. Limpieza de data/processed (excepto primer_analisis)
     if processed_dir.exists():
         for item in processed_dir.iterdir():
-            if item.is_dir() and item.name != "primer_analisis":
+            if item.name == "primer_analisis":
+                continue
+            if item.is_dir():
                 shutil.rmtree(item)
-                print(f"[OK] Eliminado directorio: {item.name}")
-            elif item.is_file():
+                print(f"[OK] Directorio eliminado: {item.name}")
+            else:
                 item.unlink()
-                print(f"[OK] Eliminado archivo: {item.name}")
+                print(f"[OK] Archivo eliminado: {item.name}")
 
-    # Borrar contenido de data/plots
+    # 2. Limpieza específica de carpetas de modelos (por si acaso quedaron huérfanas)
+    sub_models = ["evaluation", "analysis_reports"]
+    for sub in sub_models:
+        target = models_dir / sub
+        if target.exists():
+            shutil.rmtree(target)
+            print(f"[OK] Limpieza profunda: models/{sub} borrado.")
+
+    # 3. Limpieza de data/plots
     if plots_dir.exists():
         shutil.rmtree(plots_dir)
-        plots_dir.mkdir(parents=True, exist_ok=True)
-        print("[OK] Carpeta de gráficas (plots) vaciada.")
+    plots_dir.mkdir(parents=True, exist_ok=True)
+    print("[OK] Carpeta de gráficas vaciada.")
 
-    if models_dir.exists():
-        shutil.rmtree(models_dir)
-        models_dir.mkdir(parents=True, exist_ok=True)
-        print("[OK] Carpeta de gráficas (plots) vaciada.")
-
-    # 2. Restauración del archivo original de Toshiba 2025
-    # Asumiendo que guardaste el original en data/raw/original/
-    source_original = Path("data/raw/original/Toshiba-2025-W27.csv")
-    target_raw = Path("data/raw/qkd/Toshiba-2025-W27.csv")
+    # 4. Restauración del Backup original
+    # Usamos .resolve() para evitar problemas de rutas relativas en Windows
+    source_original = (base_path / "data" / "raw" / "original" / "Toshiba-2025-W27.csv").resolve()
+    target_raw = (base_path / "data" / "raw" / "qkd" / "Toshiba-2025-W27.csv").resolve()
 
     if source_original.exists():
-        # Aseguramos que el destino exista
         target_raw.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy(source_original, target_raw)
-        print(f"[OK] Dataset 2025 restaurado desde el backup original.")
+        shutil.copy2(source_original, target_raw)
+        print(f"[OK] Dataset 2025 restaurado con éxito desde: {source_original.name}")
     else:
-        print(f"[WARNING] No se encontró el backup en {source_original}. Verifica la ruta.")
+        print(f"[CRITICAL] Error: No se encuentra el backup en {source_original}")
+        print("Asegúrate de que el archivo existe físicamente en esa carpeta.")
 
-    print("\n [SUCCESS] Entorno restaurado. Listos para nueva ejecución. \n")
+    print("\n [SUCCESS] Entorno listo para la nueva ejecución. \n")
+
 
 def run_anomaly_injection():
     """Ejecuta la creación de escenarios sintéticos como un proceso independiente."""
@@ -172,7 +181,7 @@ def main():
     run_anomaly_injection()
 
     # 1. Ejecutar análisis R inicial (opcional)
-    # run_r_script()
+    #run_r_script()
     
     # 2. Ejecutar Preprocesamiento Python
     run_python_preprocessing()
@@ -186,13 +195,13 @@ def main():
     # 5. Entrenar Autoencoder
     run_python_autoencoder()
     
-        # 6. Fusión y análisis comparativo IF + Autoencoder
+    # 6. Fusión y análisis comparativo IF + Autoencoder
     run_python_merging()
 
     run_python_anomaly_analysis()
 
-
     run_python_plots()
+    
     print("\nTHE PIPELINE HAS FINISHED SATISFACTORILY\n")
 
 if __name__ == "__main__":

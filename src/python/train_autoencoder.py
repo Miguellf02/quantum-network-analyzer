@@ -34,7 +34,7 @@ BATCH_SIZE = 128
 LR = 1e-3
 NAN_THRESHOLD = 0.4
 
-
+WARM_UP_STEPS = 50
 # ================================================================
 # UTILS
 # ================================================================
@@ -162,7 +162,11 @@ def main():
 
         df_out = df_clean.copy()
         df_out["anomaly_score_autoencoder"] = scores
-
+        
+        if len(df_out) > WARM_UP_STEPS:
+            print(f"[INFO] Aplicando warm-up: descartando primeras {WARM_UP_STEPS} filas.")
+            df_out = df_out.iloc[WARM_UP_STEPS:].copy()
+            
         df_out.to_csv(
             MODEL_OUTPUT_DIR / f"AUTOENCODER_RESULTS_{source}.csv",
             index=False

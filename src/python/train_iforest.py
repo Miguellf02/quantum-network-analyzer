@@ -34,13 +34,15 @@ SOURCES = [
 # Contaminación conservadora por fuente
 # En entornos reales este valor se ajustaría según SLA / política operativa
 CONTAMINATION_BY_SOURCE = {
-    "QTI": 0.01,
-    "TOSHIBA-2024-W25": 0.01,
-    "TOSHIBA-2025-W27": 0.01
+    "QTI": 0.003,
+    "TOSHIBA-2024-W25": 0.003,
+    "TOSHIBA-2025-W27": 0.003
 }
 
 N_ESTIMATORS = 600
 RANDOM_STATE = 42
+
+WARM_UP_STEPS = 50
 
 # Variables temporales discretas que deben entrar al modelo
 TEMPORAL_FEATURES = [
@@ -174,6 +176,10 @@ def main():
         df_out["anomaly_score"] = anomaly_score
         df_out["anomaly_label"] = anomaly_label
 
+        if len(df_out) > WARM_UP_STEPS:
+            print(f"[INFO] Aplicando warm-up: descartando primeras {WARM_UP_STEPS} filas para {source_norm}.")
+            df_out = df_out.iloc[WARM_UP_STEPS:].copy()
+            
         csv_path = MODEL_OUTPUT_DIR / f"IFOREST_RESULTS_{source_norm}.csv"
         df_out.to_csv(csv_path, index=False)
 
