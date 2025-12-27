@@ -18,7 +18,7 @@ from pathlib import Path
 
 # Rutas
 RAW_PATH = Path("data/raw/qkd/Toshiba-2025-W27.csv")
-OUTPUT_PATH = Path("data/raw/qkd/Toshiba-2025-W27-DRIFT.csv")
+OUTPUT_PATH = Path("data/raw/qkd/Toshiba-2025-W27.csv")
 
 def inject():
     df = pd.read_csv(RAW_PATH)

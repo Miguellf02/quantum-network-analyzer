@@ -3,7 +3,7 @@ from pathlib import Path
 #inject_dos.py
 # Configuración de rutas (ajusta a tus constantes)
 RAW_PATH = Path("data/raw/qkd/Toshiba-2025-W27.csv")
-OUTPUT_PATH = Path("data/raw/qkd/Toshiba-2025-W27-DOS-ATTACK.csv")
+OUTPUT_PATH = Path("data/raw/qkd/Toshiba-2025-W27.csv")
 
 def inject():
     df = pd.read_csv(RAW_PATH)

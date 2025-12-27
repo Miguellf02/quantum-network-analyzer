@@ -4,7 +4,7 @@ import numpy as np
 
 # Configuración de rutas (Rutas relativas desde la raíz del proyecto)
 RAW_PATH = Path("data/raw/qkd/Toshiba-2025-W27.csv")
-OUTPUT_PATH = Path("data/raw/qkd/Toshiba-2025-W27-EVE-ATTACK.csv")
+OUTPUT_PATH = Path("data/raw/qkd/Toshiba-2025-W27.csv")
 
 def inject():
     if not RAW_PATH.exists():

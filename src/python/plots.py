@@ -58,12 +58,12 @@ def plot_advanced_operational_dashboard(source):
 if __name__ == "__main__":
     # Definimos las fuentes que queremos dibujar
      sources = [
-        "QTI", 
-        "TOSHIBA-2024-W25", 
+        #"QTI", 
+        #"TOSHIBA-2024-W25", 
         "TOSHIBA-2025-W27", 
-        #"TOSHIBA-2025-W27-DOS-ATTACK", 
+        "TOSHIBA-2025-W27-DOS-ATTACK", 
         #"TOSHIBA-2025-W27-DRIFT", 
-        "TOSHIBA-2025-W27-EVE-ATTACK"
+        #"TOSHIBA-2025-W27-EVE-ATTACK"
     ]
     
     # Creamos la carpeta si no existe
