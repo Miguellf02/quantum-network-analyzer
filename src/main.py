@@ -16,6 +16,24 @@ PROJECT_BASE_DIR = constants.BASE_DIR
 
 # EXECUTION FUNCTIONS
 
+
+def run_anomaly_injection():
+    """Ejecuta la creación de escenarios sintéticos como un proceso independiente."""
+    print("\n [INFO] GENERATING SYNTHETIC ATTACK SCENARIOS \n")
+    
+    # Ruta al script de inyección
+    injector_path = PROJECT_BASE_DIR / "src" / "python" / "demostradores" / "inject_drift.py"
+    
+    if injector_path.exists():
+        subprocess.run(
+            [sys.executable, str(injector_path)],
+            check=True,
+            cwd=PROJECT_BASE_DIR 
+        )
+    else:
+        print(f"[ERROR] No se encontró el script en: {injector_path}")
+
+
 def run_r_script():
     """Executes the initial R exploratory analysis script."""
     print("\n EXECUTING R SCRIPT \n")
@@ -85,11 +103,22 @@ def run_python_anomaly_analysis():
         cwd=PROJECT_BASE_DIR
     )
 
-
+def run_python_plots():
+    """Genera las visualizaciones finales de los resultados."""
+    print("\n EXECUTING GENERATION OF OPERATIONAL PLOTS \n")
+    
+    # Definimos el módulo en tus constantes como: src.python.analysis.plots
+    subprocess.run(
+        [sys.executable, "-m", constants.PYTHON_MODULE_PLOTS],
+        check=True,
+        cwd=PROJECT_BASE_DIR
+    )
 # MAIN PIPELINE EXECUTION
 
 def main():
     
+    run_anomaly_injection()
+
     # 1. Ejecutar análisis R inicial (opcional)
     # run_r_script()
     
@@ -107,9 +136,11 @@ def main():
     
         # 6. Fusión y análisis comparativo IF + Autoencoder
     run_python_merging()
-    
+
     run_python_anomaly_analysis()
 
+
+    run_python_plots()
     print("\nTHE PIPELINE HAS FINISHED SATISFACTORILY\n")
 
 if __name__ == "__main__":

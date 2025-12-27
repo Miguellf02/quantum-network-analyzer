@@ -42,7 +42,12 @@ def load_processed_data(file_path):
     print(f"[INFO] Loading processed data from: {file_path}")
     df = pd.read_csv(file_path)
 
-    df['timestamp'] = pd.to_datetime(df['timestamp'])
+    # CAMBIO AQUÍ: Usamos format='ISO8601' para que sea flexible con los milisegundos
+    df['timestamp'] = pd.to_datetime(df['timestamp'], format='ISO8601', errors='coerce')
+    
+    # Eliminamos posibles NaNs en el timestamp que hayan fallado al parsear
+    df = df.dropna(subset=['timestamp'])
+    
     df = df.set_index('timestamp').sort_index()
 
     return df
