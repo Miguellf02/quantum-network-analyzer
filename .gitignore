@@ -2,3 +2,8 @@
 .Rhistory
 .RData
 .Ruserdata
+
+# Data is private (MADQCI) and must never be committed
+data/
+__pycache__/
+*.pyc

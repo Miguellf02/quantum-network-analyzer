@@ -1,3 +1,9 @@
+## Data availability
+
+The QKD datasets used in this project (Toshiba and QTI operational metrics from **MADQCI**, the Madrid Quantum Communication Infrastructure) are **private** and are not distributed in this repository, nor are the models, results or plots derived from them. The code is published so the methodology can be reviewed; to run it, place the datasets under `data/raw/` following the paths in `src/`.
+
+---
+
 
 ##  Theoretical Foundations (TFG Structure)
 
